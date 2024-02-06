@@ -9,7 +9,7 @@ from app.core.config import settings
 class PreBase:
 
     @declared_attr
-    def __tablenmae__(cls):
+    def __tablename__(cls):
         # Именем таблицы будет название модели в нижнем регистре.
         return cls.__name__.lower()
 
@@ -18,7 +18,7 @@ class PreBase:
 
 
 # В качестве основы для базового классса укаем класс PreBase.
-Base = declarative_base()
+Base = declarative_base(cls=PreBase)
 
 engine = create_async_engine(settings.database_url)
 
