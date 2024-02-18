@@ -1,6 +1,6 @@
 from typing import Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, validator
 
 
 class MeetingRoomBase(BaseModel):
@@ -13,6 +13,15 @@ class MeetingRoomCreate(MeetingRoomBase):
     # Переопределяем атрибут name, делаем его обязательным.
     name: str = Field(..., min_length=1, max_length=100)
     # Описывать поле description не нужно: оно уже есть в базовом классе.
+
+
+class MeetingRoomUpdate(MeetingRoomBase):
+
+    @validator('name')
+    def name_cannot_be_null(cls, value):
+        if value is None:
+            raise ValueError('Имя переговорки не может быть пустым!')
+        return value
 
 
 # Возвращаемую схему унаследуем от MeetingRoomCreate,
