@@ -20,7 +20,6 @@ async def create_reservation(
     reservation: ReservationCreate,
     session: AsyncSession = Depends(get_async_session),
     user: User = Depends(current_user)
-
 ):
     await check_meeting_room_exists(
         reservation.meeting_room_id, session
@@ -41,11 +40,13 @@ async def create_reservation(
 @router.get(
     '/',
     response_model=list[ReservationDB],
-    response_model_exclude_none=True
+    response_model_exclude_none=True,
+    dependencies=[Depends(current_user)],
     )
 async def get_all_reservations(
     session: AsyncSession = Depends(get_async_session)
 ):
+    """Только для суперюзера."""
     return await reservation_crud.get_multi(session)
 
 
@@ -56,9 +57,11 @@ async def get_all_reservations(
 async def delete_reservation(
     reservation_id: int,
     session: AsyncSession = Depends(get_async_session),
+    # Новая зависимость.
+    user: User = Depends(current_user),
 ):
     reservation = await check_reservation_before_edit(
-        reservation_id, session
+        reservation_id, session, user
     )
     reservation = await reservation_crud.remove(
         reservation, session
@@ -74,10 +77,12 @@ async def update_reservation(
         reservation_id: int,
         obj_in: ReservationUpdate,
         session: AsyncSession = Depends(get_async_session),
+        # Новая зависимость.
+        user: User = Depends(current_user),
 ):
     # Проверяем, что такой объект бронирования вообще существует.
     reservation = await check_reservation_before_edit(
-        reservation_id, session
+        reservation_id, session, user
     )
     # Проверяем, что нет пересечений с другими бронированиями.
     await check_reservation_intersections(
@@ -101,7 +106,8 @@ async def update_reservation(
 
 @router.get(
     '/{meeting_room_id}/reservations',
-    response_model=list[ReservationDB]
+    response_model=list[ReservationDB],
+    response_model_exclude={'user_id'},
 )
 async def get_reservations_for_room(
     meeting_room_id: int,
@@ -110,5 +116,24 @@ async def get_reservations_for_room(
     await check_meeting_room_exists(meeting_room_id, session)
     reservations = await reservation_crud.get_future_reservations_for_room(
         room_id=meeting_room_id, session=session
+    )
+    return reservations
+
+
+@router.get(
+    '/my_reservations',
+    response_model=list[ReservationDB],
+    response_model_exclude={'user_id'},
+)
+async def get_my_reservations(
+        session: AsyncSession = Depends(get_async_session),
+        # В этой зависимости получаем обычного пользователя, а не суперюзера.
+        user: User = Depends(current_user)
+):
+    # Сразу можно добавить докстринг для большей информативности.
+    """Получает список всех бронирований для текущего пользователя."""
+    # Вызываем созданный метод.
+    reservations = await reservation_crud.get_by_user(
+        session=session, user=user
     )
     return reservations

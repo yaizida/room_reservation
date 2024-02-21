@@ -8,7 +8,7 @@ from app.schemas.meeting_room import (MeetingRoomCreate, MeetingRoomDB,
                                       MeetingRoomUpdate)
 from app.api.endpoints.validators import (check_meeting_room_exists,
                                           check_name_duplicate)
-
+from app.core.user import current_superuser
 
 router = APIRouter()
 
@@ -17,6 +17,7 @@ router = APIRouter()
     '/',
     response_model=MeetingRoomDB,
     response_model_exclude_none=True,
+    dependencies=[Depends(current_superuser)],
     )
 async def create_new_meeting_room(
     meeting_room: MeetingRoomCreate,
@@ -24,6 +25,7 @@ async def create_new_meeting_room(
     # предствавляющую объект сессии, как параметр функции.
     session: AsyncSession = Depends(get_async_session)
 ):
+    """Только для суперюзеров."""
     # Выносим проверку дубликата имени в отдельную корутину.
     # Если такое имя уже существует, то будет вызвана ошибка HTTPException
     # и обработка запроса остановится.
@@ -37,6 +39,7 @@ async def create_new_meeting_room(
     '/{meeting_room_id}',
     response_model=MeetingRoomDB,
     response_model_exclude_none=True,
+    dependencies=[Depends(current_superuser)],
 )
 async def partially_update_meeting_room(
         # ID обновляемого объекта.
@@ -45,6 +48,7 @@ async def partially_update_meeting_room(
         obj_in: MeetingRoomUpdate,
         session: AsyncSession = Depends(get_async_session),
 ):
+    """Только для суперюзера."""
     # Получаем объект из БД по ID.
     # В ответ ожидеается либо None, либо объект класса MeetingRoom.
     meeting_room = await check_meeting_room_exists(
@@ -65,7 +69,8 @@ async def partially_update_meeting_room(
 @router.delete(
     '/{meeting_room_id}',
     response_model=MeetingRoomDB,
-    response_model_exclude_none=True
+    response_model_exclude_none=True,
+    dependencies=[Depends(current_superuser)]
 )
 async def remove_meeting_room(
     meeting_room_id: int,
@@ -84,6 +89,7 @@ async def remove_meeting_room(
     '/',
     response_model=list[MeetingRoomDB],
     response_model_exclude_none=True,
+
     )
 async def get_all_meeting_rooms(
     session: AsyncSession = Depends(get_async_session)
