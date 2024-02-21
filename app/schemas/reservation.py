@@ -1,11 +1,26 @@
-from datetime import datetime
+from datetime import datetime, timedelta
+from typing import Optional
 
-from pydantic import BaseModel, root_validator, validator
+
+from pydantic import (
+    BaseModel, root_validator,
+    validator, Extra, Field)
+
+
+FROM_TIME = (
+    datetime.now() + timedelta(minutes=10)
+    ).isoformat(timespec='minutes')
+TO_TIME = (
+    datetime.now() + timedelta(hours=1)
+    ).isoformat(timespec='minutes')
 
 
 class ReservationBase(BaseModel):
-    from_reserve: datetime
-    to_reserve: datetime
+    from_reserve: datetime = Field(..., example=FROM_TIME)
+    to_reserve: datetime = Field(..., example=TO_TIME)
+
+    class Config:
+        extra = Extra.forbid
 
 
 class ReservationUpdate(ReservationBase):
@@ -31,7 +46,7 @@ class ReservationUpdate(ReservationBase):
 
 # Этот класс наследуем от ReservationUpdate с валидаторами.
 class ReservationCreate(ReservationUpdate):
-    meetingroom_id: int
+    meeting_room_id: int
 
 
 # Класс ReservationDB нельзя наследовать от ReservationCreate:
@@ -41,7 +56,8 @@ class ReservationCreate(ReservationUpdate):
 
 class ReservationDB(ReservationBase):
     id: int
-    meetingroom_id: int
+    meeting_room_id: int
+    user_id: Optional[int]
 
     class Config:
         orm_mode = True
